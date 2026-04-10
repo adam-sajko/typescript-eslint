@@ -1,0 +1,63 @@
+---
+description: 'Require explicit type annotations for empty arrays assigned to variables.'
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+> 🛑 This file is source code, not the primary documentation location! 🛑
+>
+> See **https://typescript-eslint.io/rules/require-explicit-array-types** for documentation.
+
+This rule requires explicit type annotations for empty arrays assigned to variables.
+
+**Problem:**
+
+TypeScript infers empty arrays as an **"evolving any"** type that evolves as you push elements. TypeScript already prevents unsafe usage, so it's type-safe. The issue is purely about **code clarity**: without an explicit annotation, it's not clear what type the array should contain.
+
+**Solution:**
+
+This rule enforces explicit type annotations for empty arrays for **code clarity and consistency**. It's a style preference, not a safety requirement.
+
+**Note:** With `noImplicitAny: true` (strict mode), empty arrays without annotations are inferred as `never[]`, which prevents adding any elements. If you intentionally want `never[]`, explicitly type it: `const arr: never[] = []`.
+
+## Examples
+
+<Tabs>
+<TabItem value="❌ Incorrect">
+
+```ts
+const arr = [];
+const items = [];
+let data = [];
+var list = [];
+```
+
+</TabItem>
+<TabItem value="✅ Correct">
+
+```ts
+const arr: string[] = [];
+const items: number[] = [];
+let data: boolean[] = [];
+var list: any[] = [];
+
+// If you intentionally want never[], you can be explicit about it
+// Placeholder that will be replaced later
+const placeholder: never[] = [];
+
+// Non-empty arrays don't require explicit types
+const numbers = [1, 2, 3];
+const strings = ['a', 'b'];
+
+// Type assertions are also acceptable
+const typedArr = [] as string[];
+const typedItems = [] as number[];
+```
+
+</TabItem>
+</Tabs>
+
+## When Not To Use It
+
+If you prefer to rely on TypeScript's evolving any type inference for empty arrays, or if you consistently use type assertions instead of type annotations, you can turn this rule off. Since evolving any is type-safe, this rule is primarily about code clarity and style preference rather than type safety.
