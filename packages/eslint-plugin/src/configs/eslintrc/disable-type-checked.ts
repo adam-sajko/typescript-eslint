@@ -63,6 +63,7 @@ export = {
     '@typescript-eslint/related-getter-setter-pairs': 'off',
     '@typescript-eslint/require-array-sort-compare': 'off',
     '@typescript-eslint/require-await': 'off',
+    '@typescript-eslint/require-explicit-array-types': 'off',
     '@typescript-eslint/restrict-plus-operands': 'off',
     '@typescript-eslint/restrict-template-expressions': 'off',
     '@typescript-eslint/return-await': 'off',

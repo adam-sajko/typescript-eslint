@@ -20,6 +20,13 @@ class Foo {
   ~~~~~~~~~~~~~~~~~~~ Empty array should have an explicit type annotation for code clarity. Use `data: Type[] = new Array()` or `data: Type[] = []` instead.
 }
 
+const obj = {
+  items: [],
+  ~~~~~~~~~ Empty array should have an explicit type annotation for code clarity. Use `items: [] as Type[]` instead.
+  data: new Array(),
+  ~~~~~~~~~~~~~~~~~ Empty array should have an explicit type annotation for code clarity. Use `data: new Array<Type>()` or `data: [] as Type[]` instead.
+};
+
 Correct
 
 const arr: string[] = [];
@@ -34,6 +41,11 @@ class Foo {
   data: number[] = new Array();
 }
 
+const obj = {
+  items: [] as string[],
+  data: new Array<number>(),
+};
+
 // If you intentionally want never[], you can be explicit about it
 const placeholder: never[] = [];
 
@@ -44,6 +56,18 @@ const strings = ['a', 'b'];
 // Type assertions are also acceptable
 const typedArr = [] as string[];
 const typedItems = [] as number[];
+
+interface Config {
+  plugins: string[];
+}
+
+// Contextually-typed empty arrays are accepted — the element type is already known
+const config: Config = { plugins: [] };
+function make(): { items: string[] } {
+  return { items: [] };
+}
+const listItems: { items: string[] }[] = [{ items: [] }];
+const sat = { items: [] } satisfies { items: string[] };
 
 Incorrect
 Options: { "ignoreMutableVariables": true }

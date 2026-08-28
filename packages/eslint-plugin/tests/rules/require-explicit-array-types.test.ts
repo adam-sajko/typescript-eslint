@@ -1,8 +1,7 @@
-import { RuleTester } from '@typescript-eslint/rule-tester';
-
 import rule from '../../src/rules/require-explicit-array-types';
+import { createRuleTesterWithTypes } from '../RuleTester';
 
-const ruleTester = new RuleTester();
+const ruleTester = createRuleTesterWithTypes();
 
 ruleTester.run('require-explicit-array-types', rule, {
   valid: [
@@ -102,6 +101,23 @@ class Foo {
 }
     `,
 
+    // Object literal properties with type assertions
+    'const obj = { arr: [] as string[] };',
+    'const obj = { arr: [] as number[] };',
+    'const obj = { arr: new Array<string>() };',
+
+    // Object literal properties with non-empty arrays
+    'const obj = { arr: [1, 2, 3] };',
+    "const obj = { arr: ['a', 'b'] };",
+
+    // Object literal shorthand and methods
+    'const arr: string[] = []; const obj = { arr };',
+    'const obj = { add() {} };',
+
+    // Destructuring with array default (not an object literal value)
+    'const { arr = [] } = input;',
+    'function fn({ arr = [] }) {}',
+
     // ignoreMutableVariables: let and var ignored
     {
       code: 'let arr = [];',
@@ -115,6 +131,32 @@ class Foo {
       code: 'let arr = new Array();',
       options: [{ ignoreMutableVariables: true }],
     },
+
+    // Contextually-typed empty arrays: the element type is already known
+
+    // Object literal property inside a typed variable
+    'interface Cfg { arr: string[] } const cfg: Cfg = { arr: [] };',
+    'const cfg: { arr: string[] } = { arr: [] };',
+    'const cfg: { arr: string[] } = { arr: new Array() };',
+
+    // Deeply nested typed object literal
+    'const cfg: { outer: { inner: string[] } } = { outer: { inner: [] } };',
+
+    // Function return position
+    'function make(): { arr: string[] } { return { arr: [] }; }',
+    'const make = (): { arr: string[] } => ({ arr: [] });',
+
+    // Typed array elements
+    'const list: { arr: string[] }[] = [{ arr: [] }];',
+
+    // Contextually-typed call argument holding a typed property
+    'declare function use(cfg: { arr: string[] }): void; use({ arr: [] });',
+
+    // satisfies provides the contextual type
+    'const cfg = { arr: [] } satisfies { arr: string[] };',
+
+    // Contextually-typed variable via a mapped/generic alias
+    'type Cfg<T> = { arr: T[] }; const cfg: Cfg<number> = { arr: [] };',
   ],
   invalid: [
     // Basic variable declarations — empty array literal
@@ -490,6 +532,120 @@ class Foo {
   items: unknown[] = [];
 }
       `,
+            },
+          ],
+        },
+      ],
+    },
+
+    // Object literal property — empty array literal (untyped object)
+    {
+      code: 'const obj = { arr: [] };',
+      errors: [
+        {
+          messageId: 'missingTypeAnnotationProperty',
+          data: { name: 'arr' },
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArrayAssertion',
+              output: 'const obj = { arr: [] as unknown[] };',
+            },
+          ],
+        },
+      ],
+    },
+
+    // Object literal property — new Array()
+    {
+      code: 'const obj = { arr: new Array() };',
+      errors: [
+        {
+          messageId: 'missingTypeAnnotationNewArrayProperty',
+          data: { name: 'arr' },
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArrayAssertion',
+              output: 'const obj = { arr: new Array() as unknown[] };',
+            },
+          ],
+        },
+      ],
+    },
+
+    // Object literal property — Array() call
+    {
+      code: 'const obj = { arr: Array() };',
+      errors: [
+        {
+          messageId: 'missingTypeAnnotationNewArrayProperty',
+          data: { name: 'arr' },
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArrayAssertion',
+              output: 'const obj = { arr: Array() as unknown[] };',
+            },
+          ],
+        },
+      ],
+    },
+
+    // Object literal property — string-literal key
+    {
+      code: "const obj = { 'my-arr': [] };",
+      errors: [
+        {
+          messageId: 'missingTypeAnnotationProperty',
+          data: { name: 'my-arr' },
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArrayAssertion',
+              output: "const obj = { 'my-arr': [] as unknown[] };",
+            },
+          ],
+        },
+      ],
+    },
+
+    // Nested object literal properties (untyped)
+    {
+      code: 'const obj = { outer: { inner: [] } };',
+      errors: [
+        {
+          messageId: 'missingTypeAnnotationProperty',
+          data: { name: 'inner' },
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArrayAssertion',
+              output: 'const obj = { outer: { inner: [] as unknown[] } };',
+            },
+          ],
+        },
+      ],
+    },
+
+    // Multiple properties, mixed typed and untyped
+    {
+      code: 'const obj = { a: [], b: [] as number[], c: [] };',
+      errors: [
+        {
+          messageId: 'missingTypeAnnotationProperty',
+          data: { name: 'a' },
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArrayAssertion',
+              output:
+                'const obj = { a: [] as unknown[], b: [] as number[], c: [] };',
+            },
+          ],
+        },
+        {
+          messageId: 'missingTypeAnnotationProperty',
+          data: { name: 'c' },
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArrayAssertion',
+              output:
+                'const obj = { a: [], b: [] as number[], c: [] as unknown[] };',
             },
           ],
         },

@@ -9,17 +9,19 @@ import TabItem from '@theme/TabItem';
 >
 > See **https://typescript-eslint.io/rules/require-explicit-array-types** for documentation.
 
-This rule requires explicit type annotations when assigning empty arrays to variables or class properties.
+This rule requires explicit type annotations for empty arrays (`[]`, `new Array()`, `Array()`) in variable declarations, class properties, and object literal properties **only when their element type isn't already known from context**.
+
+> This is a **type-aware** rule. It asks the TypeScript type checker whether each empty array already has a contextual type, so it only flags arrays that are genuinely ambiguous evolving-`any`s.
 
 **Problem:**
 
 TypeScript infers empty arrays as an **"evolving any"** type that evolves as you push elements. TypeScript already prevents unsafe usage, so it's type-safe. The issue is purely about **code clarity**: without an explicit annotation, it's not clear what type the array should contain.
 
-This applies to both `[]` and `new Array()` / `Array()` without type arguments.
-
 **Solution:**
 
 This rule enforces explicit type annotations for empty arrays for **code clarity and consistency**. It's a style preference, not a safety requirement.
+
+Because the decision is made from the checker's contextual type, an empty array whose type is already known is **never** flagged — including function return positions, contextually-typed arguments, typed array elements, `satisfies` clauses, and deeply nested typed objects.
 
 **Note:** With `noImplicitAny: true` (strict mode), empty arrays without annotations are inferred as `never[]`, which prevents adding any elements. If you intentionally want `never[]`, explicitly type it: `const arr: never[] = []`.
 
@@ -40,6 +42,11 @@ class Foo {
   items = [];
   data = new Array();
 }
+
+const obj = {
+  items: [],
+  data: new Array(),
+};
 ```
 
 </TabItem>
@@ -58,6 +65,11 @@ class Foo {
   data: number[] = new Array();
 }
 
+const obj = {
+  items: [] as string[],
+  data: new Array<number>(),
+};
+
 // If you intentionally want never[], you can be explicit about it
 const placeholder: never[] = [];
 
@@ -68,6 +80,18 @@ const strings = ['a', 'b'];
 // Type assertions are also acceptable
 const typedArr = [] as string[];
 const typedItems = [] as number[];
+
+interface Config {
+  plugins: string[];
+}
+
+// Contextually-typed empty arrays are accepted — the element type is already known
+const config: Config = { plugins: [] };
+function make(): { items: string[] } {
+  return { items: [] };
+}
+const listItems: { items: string[] }[] = [{ items: [] }];
+const sat = { items: [] } satisfies { items: string[] };
 ```
 
 </TabItem>
