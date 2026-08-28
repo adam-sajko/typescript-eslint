@@ -1,10 +1,25 @@
 
 # SCHEMA:
 
-[]
+[
+  {
+    "additionalProperties": false,
+    "properties": {
+      "ignoreMutableVariables": {
+        "description": "Whether to ignore `let` and `var` declarations, since their type will evolve as elements are added.",
+        "type": "boolean"
+      }
+    },
+    "type": "object"
+  }
+]
 
 
 # TYPES:
 
-/** No options declared */
-type Options = [];
+type Options = [
+  {
+    /** Whether to ignore `let` and `var` declarations, since their type will evolve as elements are added. */
+    ignoreMutableVariables?: boolean;
+  },
+];

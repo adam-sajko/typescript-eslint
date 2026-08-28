@@ -1,5 +1,5 @@
 ---
-description: 'Require explicit type annotations for empty arrays assigned to variables.'
+description: 'Require explicit type annotations for empty arrays for code clarity.'
 ---
 
 import Tabs from '@theme/Tabs';
@@ -9,11 +9,13 @@ import TabItem from '@theme/TabItem';
 >
 > See **https://typescript-eslint.io/rules/require-explicit-array-types** for documentation.
 
-This rule requires explicit type annotations for empty arrays assigned to variables.
+This rule requires explicit type annotations when assigning empty arrays to variables or class properties.
 
 **Problem:**
 
 TypeScript infers empty arrays as an **"evolving any"** type that evolves as you push elements. TypeScript already prevents unsafe usage, so it's type-safe. The issue is purely about **code clarity**: without an explicit annotation, it's not clear what type the array should contain.
+
+This applies to both `[]` and `new Array()` / `Array()` without type arguments.
 
 **Solution:**
 
@@ -31,6 +33,13 @@ const arr = [];
 const items = [];
 let data = [];
 var list = [];
+const more = new Array();
+const extra = Array();
+
+class Foo {
+  items = [];
+  data = new Array();
+}
 ```
 
 </TabItem>
@@ -41,9 +50,15 @@ const arr: string[] = [];
 const items: number[] = [];
 let data: boolean[] = [];
 var list: any[] = [];
+const more: string[] = new Array();
+const extra = new Array<string>();
+
+class Foo {
+  items: string[] = [];
+  data: number[] = new Array();
+}
 
 // If you intentionally want never[], you can be explicit about it
-// Placeholder that will be replaced later
 const placeholder: never[] = [];
 
 // Non-empty arrays don't require explicit types
@@ -53,6 +68,31 @@ const strings = ['a', 'b'];
 // Type assertions are also acceptable
 const typedArr = [] as string[];
 const typedItems = [] as number[];
+```
+
+</TabItem>
+</Tabs>
+
+## Options
+
+### `ignoreMutableVariables`
+
+When set to `true`, `let` and `var` declarations are ignored. This can be useful if you rely on TypeScript's evolving array type for mutable variables. `const` declarations and class properties are always checked.
+
+<Tabs>
+<TabItem value="❌ Incorrect">
+
+```ts option='{ "ignoreMutableVariables": true }'
+const arr = [];
+```
+
+</TabItem>
+<TabItem value="✅ Correct">
+
+```ts option='{ "ignoreMutableVariables": true }'
+let arr = [];
+var list = [];
+const typed: string[] = [];
 ```
 
 </TabItem>

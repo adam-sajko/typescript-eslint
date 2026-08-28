@@ -6,7 +6,7 @@ const ruleTester = new RuleTester();
 
 ruleTester.run('require-explicit-array-types', rule, {
   valid: [
-    // With type annotations
+    // Variable declarations with type annotations
     'const arr: string[] = [];',
     'const arr: number[] = [];',
     'const arr: boolean[] = [];',
@@ -18,11 +18,9 @@ ruleTester.run('require-explicit-array-types', rule, {
     'let arr: string[] = [];',
     'var arr: string[] = [];',
 
-    // Non-empty arrays (should not trigger)
+    // Non-empty arrays
     'const arr = [1, 2, 3];',
     "const arr = ['a', 'b'];",
-
-    // Arrays with type annotation and elements
     'const arr: number[] = [1, 2, 3];',
     "const arr: string[] = ['a', 'b'];",
 
@@ -32,14 +30,28 @@ ruleTester.run('require-explicit-array-types', rule, {
     'const z = null;',
     'const w = undefined;',
 
-    // Array with type assertion
+    // Type assertions
     'const arr = [] as string[];',
     'const arr = [] as number[];',
 
-    // Explicit never[] type (intentional placeholder)
+    // Explicit never[]
     'const placeholder: never[] = [];',
 
-    // For-in loops (init is null, should not trigger)
+    // new Array() with type annotation
+    'const arr: string[] = new Array();',
+    'const arr: number[] = new Array();',
+
+    // new Array() with type argument
+    'const arr = new Array<string>();',
+
+    // new Array with arguments (not empty)
+    'const arr = new Array(10);',
+    'const arr = new Array(1, 2, 3);',
+
+    // Array() call with type argument
+    'const arr = Array<string>();',
+
+    // For-in loops
     `
 for (let k in obj) {
 }
@@ -48,12 +60,8 @@ for (let k in obj) {
 for (const key in object) {
 }
     `,
-    `
-for (var prop in obj) {
-}
-    `,
 
-    // For-of loops (init is null, should not trigger)
+    // For-of loops
     `
 for (let item of array) {
 }
@@ -62,21 +70,65 @@ for (let item of array) {
 for (const value of iterable) {
 }
     `,
+
+    // Class properties with type annotations
     `
-for (var element of collection) {
+class Foo {
+  items: string[] = [];
 }
     `,
+    `
+class Foo {
+  items: Array<number> = [];
+}
+    `,
+    `
+class Foo {
+  items: string[] = new Array();
+}
+    `,
+
+    // Class properties without initializer
+    `
+class Foo {
+  items: string[];
+}
+    `,
+
+    // Class properties with non-empty arrays
+    `
+class Foo {
+  items = [1, 2, 3];
+}
+    `,
+
+    // ignoreMutableVariables: let and var ignored
+    {
+      code: 'let arr = [];',
+      options: [{ ignoreMutableVariables: true }],
+    },
+    {
+      code: 'var arr = [];',
+      options: [{ ignoreMutableVariables: true }],
+    },
+    {
+      code: 'let arr = new Array();',
+      options: [{ ignoreMutableVariables: true }],
+    },
   ],
   invalid: [
+    // Basic variable declarations — empty array literal
     {
       code: 'const arr = [];',
       errors: [
         {
-          data: {
-            kind: 'const',
-            name: 'arr',
-          },
           messageId: 'missingTypeAnnotation',
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: 'const arr: unknown[] = [];',
+            },
+          ],
         },
       ],
     },
@@ -84,11 +136,13 @@ for (var element of collection) {
       code: 'let arr = [];',
       errors: [
         {
-          data: {
-            kind: 'let',
-            name: 'arr',
-          },
           messageId: 'missingTypeAnnotation',
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: 'let arr: unknown[] = [];',
+            },
+          ],
         },
       ],
     },
@@ -96,119 +150,370 @@ for (var element of collection) {
       code: 'var arr = [];',
       errors: [
         {
-          data: {
-            kind: 'var',
-            name: 'arr',
-          },
           messageId: 'missingTypeAnnotation',
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: 'var arr: unknown[] = [];',
+            },
+          ],
+        },
+      ],
+    },
+
+    // new Array() without type annotation or type argument
+    {
+      code: 'const arr = new Array();',
+      errors: [
+        {
+          messageId: 'missingTypeAnnotationNewArray',
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: 'const arr: unknown[] = new Array();',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      code: 'let arr = new Array();',
+      errors: [
+        {
+          messageId: 'missingTypeAnnotationNewArray',
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: 'let arr: unknown[] = new Array();',
+            },
+          ],
+        },
+      ],
+    },
+
+    // Array() call (without new)
+    {
+      code: 'const arr = Array();',
+      errors: [
+        {
+          messageId: 'missingTypeAnnotationNewArray',
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: 'const arr: unknown[] = Array();',
+            },
+          ],
+        },
+      ],
+    },
+
+    // Multiple declarations
+    {
+      code: `
+const items = [];
+const data = [];
+      `,
+      errors: [
+        {
+          messageId: 'missingTypeAnnotation',
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: `
+const items: unknown[] = [];
+const data = [];
+      `,
+            },
+          ],
+        },
+        {
+          messageId: 'missingTypeAnnotation',
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: `
+const items = [];
+const data: unknown[] = [];
+      `,
+            },
+          ],
+        },
+      ],
+    },
+
+    // Nested scopes
+    {
+      code: `
+function test() {
+  const local = [];
+}
+      `,
+      errors: [
+        {
+          messageId: 'missingTypeAnnotation',
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: `
+function test() {
+  const local: unknown[] = [];
+}
+      `,
+            },
+          ],
         },
       ],
     },
     {
       code: `
-        const items = [];
-        const data = [];
+if (true) {
+  const arr = [];
+}
       `,
       errors: [
         {
-          data: {
-            kind: 'const',
-            name: 'items',
-          },
           messageId: 'missingTypeAnnotation',
-        },
-        {
-          data: {
-            kind: 'const',
-            name: 'data',
-          },
-          messageId: 'missingTypeAnnotation',
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: `
+if (true) {
+  const arr: unknown[] = [];
+}
+      `,
+            },
+          ],
         },
       ],
     },
     {
       code: `
-        const arr = [];
-        arr.push(1);
+for (let i = 0; i < 10; i++) {
+  const items = [];
+}
       `,
       errors: [
         {
-          data: {
-            kind: 'const',
-            name: 'arr',
-          },
           messageId: 'missingTypeAnnotation',
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: `
+for (let i = 0; i < 10; i++) {
+  const items: unknown[] = [];
+}
+      `,
+            },
+          ],
+        },
+      ],
+    },
+
+    // Mixed typed and untyped
+    {
+      code: `
+const a = [];
+const b: number[] = [];
+const c = [];
+      `,
+      errors: [
+        {
+          messageId: 'missingTypeAnnotation',
+          data: { name: 'a' },
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: `
+const a: unknown[] = [];
+const b: number[] = [];
+const c = [];
+      `,
+            },
+          ],
+        },
+        {
+          messageId: 'missingTypeAnnotation',
+          data: { name: 'c' },
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: `
+const a = [];
+const b: number[] = [];
+const c: unknown[] = [];
+      `,
+            },
+          ],
+        },
+      ],
+    },
+
+    // Class properties without type annotation
+    {
+      code: `
+class Foo {
+  items = [];
+}
+      `,
+      errors: [
+        {
+          messageId: 'missingTypeAnnotation',
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: `
+class Foo {
+  items: unknown[] = [];
+}
+      `,
+            },
+          ],
         },
       ],
     },
     {
       code: `
-        function test() {
-          const local = [];
-        }
+class Foo {
+  items = new Array();
+}
       `,
       errors: [
         {
-          data: {
-            kind: 'const',
-            name: 'local',
-          },
+          messageId: 'missingTypeAnnotationNewArray',
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: `
+class Foo {
+  items: unknown[] = new Array();
+}
+      `,
+            },
+          ],
+        },
+      ],
+    },
+
+    // Multiple class properties
+    {
+      code: `
+class Foo {
+  a = [];
+  b: string[] = [];
+  c = [];
+}
+      `,
+      errors: [
+        {
           messageId: 'missingTypeAnnotation',
+          data: { name: 'a' },
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: `
+class Foo {
+  a: unknown[] = [];
+  b: string[] = [];
+  c = [];
+}
+      `,
+            },
+          ],
+        },
+        {
+          messageId: 'missingTypeAnnotation',
+          data: { name: 'c' },
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: `
+class Foo {
+  a = [];
+  b: string[] = [];
+  c: unknown[] = [];
+}
+      `,
+            },
+          ],
+        },
+      ],
+    },
+
+    // ignoreMutableVariables still flags const
+    {
+      code: 'const arr = [];',
+      options: [{ ignoreMutableVariables: true }],
+      errors: [
+        {
+          messageId: 'missingTypeAnnotation',
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: 'const arr: unknown[] = [];',
+            },
+          ],
         },
       ],
     },
     {
-      code: `
-        if (true) {
-          const arr = [];
-        }
-      `,
+      code: 'const arr = new Array();',
+      options: [{ ignoreMutableVariables: true }],
       errors: [
         {
-          data: {
-            kind: 'const',
-            name: 'arr',
-          },
-          messageId: 'missingTypeAnnotation',
+          messageId: 'missingTypeAnnotationNewArray',
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: 'const arr: unknown[] = new Array();',
+            },
+          ],
         },
       ],
     },
+
+    // ignoreMutableVariables still flags class properties
     {
       code: `
-        for (let i = 0; i < 10; i++) {
-          const items = [];
-        }
+class Foo {
+  items = [];
+}
       `,
+      options: [{ ignoreMutableVariables: true }],
       errors: [
         {
-          data: {
-            kind: 'const',
-            name: 'items',
-          },
           messageId: 'missingTypeAnnotation',
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: `
+class Foo {
+  items: unknown[] = [];
+}
+      `,
+            },
+          ],
         },
       ],
     },
+
+    // Usage with push (still flags)
     {
       code: `
-        const a = [];
-        const b: number[] = [];
-        const c = [];
+const arr = [];
+arr.push(1);
       `,
       errors: [
         {
-          data: {
-            kind: 'const',
-            name: 'a',
-          },
           messageId: 'missingTypeAnnotation',
-        },
-        {
-          data: {
-            kind: 'const',
-            name: 'c',
-          },
-          messageId: 'missingTypeAnnotation',
+          suggestions: [
+            {
+              messageId: 'suggestUnknownArray',
+              output: `
+const arr: unknown[] = [];
+arr.push(1);
+      `,
+            },
+          ],
         },
       ],
     },

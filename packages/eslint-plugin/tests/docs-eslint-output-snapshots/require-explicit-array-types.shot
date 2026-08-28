@@ -1,13 +1,24 @@
 Incorrect
 
 const arr = [];
-      ~~~~~~~~ Empty array assigned to variable should have an explicit type annotation for code clarity. Use `const arr: Type[] = []` instead.
+      ~~~~~~~~ Empty array should have an explicit type annotation for code clarity. Use `arr: Type[] = []` instead.
 const items = [];
-      ~~~~~~~~~~ Empty array assigned to variable should have an explicit type annotation for code clarity. Use `const items: Type[] = []` instead.
+      ~~~~~~~~~~ Empty array should have an explicit type annotation for code clarity. Use `items: Type[] = []` instead.
 let data = [];
-    ~~~~~~~~~ Empty array assigned to variable should have an explicit type annotation for code clarity. Use `let data: Type[] = []` instead.
+    ~~~~~~~~~ Empty array should have an explicit type annotation for code clarity. Use `data: Type[] = []` instead.
 var list = [];
-    ~~~~~~~~~ Empty array assigned to variable should have an explicit type annotation for code clarity. Use `var list: Type[] = []` instead.
+    ~~~~~~~~~ Empty array should have an explicit type annotation for code clarity. Use `list: Type[] = []` instead.
+const more = new Array();
+      ~~~~~~~~~~~~~~~~~~ Empty array should have an explicit type annotation for code clarity. Use `more: Type[] = new Array()` or `more: Type[] = []` instead.
+const extra = Array();
+      ~~~~~~~~~~~~~~~ Empty array should have an explicit type annotation for code clarity. Use `extra: Type[] = new Array()` or `extra: Type[] = []` instead.
+
+class Foo {
+  items = [];
+  ~~~~~~~~~~~ Empty array should have an explicit type annotation for code clarity. Use `items: Type[] = []` instead.
+  data = new Array();
+  ~~~~~~~~~~~~~~~~~~~ Empty array should have an explicit type annotation for code clarity. Use `data: Type[] = new Array()` or `data: Type[] = []` instead.
+}
 
 Correct
 
@@ -15,9 +26,15 @@ const arr: string[] = [];
 const items: number[] = [];
 let data: boolean[] = [];
 var list: any[] = [];
+const more: string[] = new Array();
+const extra = new Array<string>();
+
+class Foo {
+  items: string[] = [];
+  data: number[] = new Array();
+}
 
 // If you intentionally want never[], you can be explicit about it
-// Placeholder that will be replaced later
 const placeholder: never[] = [];
 
 // Non-empty arrays don't require explicit types
@@ -27,3 +44,16 @@ const strings = ['a', 'b'];
 // Type assertions are also acceptable
 const typedArr = [] as string[];
 const typedItems = [] as number[];
+
+Incorrect
+Options: { "ignoreMutableVariables": true }
+
+const arr = [];
+      ~~~~~~~~ Empty array should have an explicit type annotation for code clarity. Use `arr: Type[] = []` instead.
+
+Correct
+Options: { "ignoreMutableVariables": true }
+
+let arr = [];
+var list = [];
+const typed: string[] = [];
